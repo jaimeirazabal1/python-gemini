@@ -1,0 +1,23 @@
+# Navegar al directorio del proyecto
+cd ~/Documents/analisis_de_datos
+
+# Crear el entorno virtual
+python3 -m venv venv
+
+# Activar el entorno virtual
+source venv/bin/activate
+
+# Actualizar pip
+pip install --upgrade pip
+
+# Instalar librerías
+pip install pandas matplotlib
+
+# Verificar las librerías instaladas
+pip list
+
+# Crear archivo requirements.txt
+pip freeze > requirements.txt
+
+# Desactivar el entorno virtual
+deactivate

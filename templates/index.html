@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Interfaz de Gemini API</title>
+    <!-- Bootstrap CSS -->
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <!-- Highlight.js CSS -->
+    <link
+      rel="stylesheet"
+      href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/default.min.css"
+    />
+    <!-- Marked.js -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Estilos personalizados -->
+    <style>
+      body {
+        background-color: #f8f9fa;
+      }
+      #response-container {
+        white-space: pre-wrap;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 16px;
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        border-radius: 5px;
+        background-color: #fff;
+      }
+      #loading-spinner {
+        display: none;
+      }
+      .cursor {
+        border-left: 2px solid black;
+        animation: blink 0.7s steps(1) infinite;
+      }
+      @keyframes blink {
+        50% {
+          border-color: transparent;
+        }
+      }
+      pre {
+        background-color: #f0f0f0;
+        padding: 15px;
+        border-radius: 5px;
+        overflow: auto;
+      }
+    </style>
+    <!-- Highlight.js JS -->
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <!-- Inicializar Highlight.js -->
+    <script>
+      hljs.highlightAll();
+    </script>
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="text-center mb-4">Interfaz de Gemini API</h1>
+      <form id="query-form">
+        <div class="form-group">
+          <label for="user_input">Ingresa tu pregunta:</label>
+          <textarea
+            id="user_input"
+            name="user_input"
+            rows="4"
+            class="form-control"
+            placeholder="Escribe aquí..."
+          ></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Enviar</button>
+      </form>
+      <div id="loading-spinner" class="text-center mt-3">
+        <div class="spinner-border text-primary" role="status">
+          <span class="sr-only">Cargando...</span>
+        </div>
+      </div>
+      <div id="response-container" class="mt-4"></div>
+      <button
+        id="play-audio"
+        class="btn btn-secondary mt-2"
+        style="display: none"
+      >
+        Escuchar en Español
+      </button>
+    </div>
+
+    <!-- jQuery y Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Script personalizado -->
+    <script>
+      $(document).ready(function () {
+        // Enviar formulario al presionar Enter
+        $("#user_input").keypress(function (e) {
+          if (e.which === 13 && !e.shiftKey) {
+            e.preventDefault();
+            $("#query-form").submit();
+          }
+        });
+
+        $("#query-form").on("submit", function (e) {
+          e.preventDefault();
+          var user_input = $("#user_input").val().trim();
+          if (user_input === "") {
+            return;
+          }
+          // Mostrar spinner de carga
+          $("#loading-spinner").show();
+          // Limpiar contenedor de respuesta
+          $("#response-container").html("");
+          // Deshabilitar el textarea y el botón mientras se procesa
+          $("#user_input").prop("disabled", true);
+          $('button[type="submit"]').prop("disabled", true);
+
+          // Enviar solicitud AJAX al servidor
+          $.ajax({
+            type: "POST",
+            url: "/generate",
+            data: { user_input: user_input },
+            success: function (data) {
+              // Ocultar spinner de carga
+              $("#loading-spinner").hide();
+              // Habilitar el textarea y el botón
+              $("#user_input").prop("disabled", false);
+              $('button[type="submit"]').prop("disabled", false);
+              // Limpiar el textarea
+              $("#user_input").val("");
+              // Animación de escritura
+              typeWriterEffect(data.response_text, "#response-container");
+              // Mostrar el botón de reproducir audio
+              $("#play-audio").show();
+              // Guardar el texto de la respuesta
+              $("#play-audio").data("text", data.response_text);
+            },
+            error: function () {
+              $("#loading-spinner").hide();
+              $("#response-container").html(
+                '<p class="text-danger">Ocurrió un error al procesar la solicitud.</p>'
+              );
+              // Habilitar el textarea y el botón
+              $("#user_input").prop("disabled", false);
+              $('button[type="submit"]').prop("disabled", false);
+            },
+          });
+        });
+        $("#play-audio").on("click", function () {
+          if ("speechSynthesis" in window) {
+            var text = $(this).data("text");
+            var msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.lang = "es-ES"; // Establecer el idioma a español
+            window.speechSynthesis.speak(msg);
+          } else {
+            alert("La síntesis de voz no es compatible con este navegador.");
+          }
+        });
+        // Función de animación de escritura
+        function typeWriterEffect(text, target) {
+          // Cancelar cualquier síntesis de voz en curso
+          window.speechSynthesis.cancel();
+
+          // Procesar el texto con Marked.js para convertir Markdown a HTML
+          var htmlContent = marked.parse(text);
+          $(target).html(htmlContent);
+
+          // Aplicar resaltado de sintaxis
+          $(target)
+            .find("pre code")
+            .each(function (i, block) {
+              hljs.highlightBlock(block);
+            });
+        }
+      });
+    </script>
+  </body>
+</html>
